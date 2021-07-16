@@ -14,7 +14,16 @@ Register a ```web``` app following [this](https://docs.microsoft.com/en-us/azure
 __NOTE:__ Set the AzureAD application RedirectURI to ```https://localhost:5000/signin-oidc```.And Update the ```Manifest``` with ```"allowPublicClient": true```
 
 
-Update the ```ClientId``` and ```TenantId``` from your new AzureAD application in the ```appsettings.json``` file
+To update the ```ClientId``` and ```TenantId``` from your new AzureAD application, override the ```appsettings.json``` file by setting the following environment variables, and creating a kubernetes secret:
+
+
+```
+export AzureAd__ClientId=<ClientId>
+export AzureAd__TenantId=<TenantId>
+
+kubectl create secret generic dotnet-demo-aad  --from-literal=ClientId=${AzureAd__ClientId} --from-literal=TenantId=${AzureAd__TenantId} 
+
+```
 
 ## Build & Create Container
 
@@ -27,6 +36,7 @@ dotnet publish -c Release
 Set ```ACRNAME``` to your container registry that is integrated into AKS, and build your container
 
 ```
+export ACRNAME=<azure container registry name>
 docker build -t ${ACRNAME}.azurecr.io/dotnet-demo:0.0.1 .
 
 ```
@@ -38,6 +48,7 @@ docker run -d \
   -it \
   -p 5000:5000 \
   --name dotnet-demo \
+  --env AzureAd__ClientId=${AzureAd__ClientId} --env AzureAd__TenantId=${AzureAd__TenantId} \
   ${ACRNAME}.azurecr.io/dotnet-demo:0.0.1
 
 ## Deploy to ACR & kubernetes
@@ -55,11 +66,11 @@ In the ```deployment.yml``` file replace the following values:
  * ```{{ACRNAME}}``` to your ACR name (ie ```myacr001```)
  * ```{{DNSZONE}}``` to ypur DNS zone (ie ```example.com```)
 
-
-Deploy to AKS
-
 ```
- kubectl apply -f ./deployment.yml
+# Deploy to AKS
+export DNSZONE=<dns zone name>
+sed -e "s|{{ACRNAME}}|${ACRNAME}|g" -e "s|{{DNSZONE}}|${DNSZONE}|g" ./deployment.yml | kubectl apply -f -
+
 ```  
 
 Add a new AzureAD application RedirectURI to ```https://dotnet-demo.{{DNSZONE}}/signin-oidc```.
