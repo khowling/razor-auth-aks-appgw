@@ -23,7 +23,7 @@ spec:
           runAsGroup: 2000
           allowPrivilegeEscalation: false
           privileged: false
-          readOnlyRootFilesystem: true
+          readOnlyRootFilesystem: false
           capabilities:
             drop:
             - all
